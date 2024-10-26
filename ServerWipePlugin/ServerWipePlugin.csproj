@@ -69,10 +69,6 @@
       <Private>true</Private>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="WebRoot\Plugin.js" />
-    <Content Include="WebRoot\SampleTab.html" />
-  </ItemGroup>
 <!--  <PropertyGroup>-->
 <!--    <PostBuildEvent>-->
 <!--      mkdir -p /run/user/1000/gvfs/sftp:host=amp01,port=2223,user=dylan/__VDS__ADS01/Plugins/$(ProjectName)/-->
