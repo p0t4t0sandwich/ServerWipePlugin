@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="17.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{13CAD005-B499-4A4C-A9BD-F9CEA47402C6}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ServerWipePlugin</RootNamespace>
+    <AssemblyName>ServerWipePlugin</AssemblyName>
+    <TargetFramework>net8.0</TargetFramework>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'CI_Build|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\CI_Build\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Nightly|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Nightly\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ModuleShared">
+      <HintPath>../../../AMP/Mainline/20241025.4/AMP_x86_64/ModuleShared.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>../../../AMP/Mainline/20241025.4/AMP_x86_64/Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="FileManagerPlugin">
+      <HintPath>../../../AMP/Mainline/20241025.4/AMP_x86_64/Plugins/FileManagerPlugin/FileManagerPlugin.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="WebRoot\Plugin.js" />
+    <Content Include="WebRoot\SampleTab.html" />
+  </ItemGroup>
+<!--  <PropertyGroup>-->
+<!--    <PostBuildEvent>-->
+<!--      mkdir -p /run/user/1000/gvfs/sftp:host=amp01,port=2223,user=dylan/__VDS__ADS01/Plugins/$(ProjectName)/-->
+<!--      cp $(TargetPath) /run/user/1000/gvfs/sftp:host=amp01,port=2223,user=dylan/__VDS__ADS01/Plugins/$(ProjectName)/-->
+
+<!--      if [ -d "./WebRoot" ]; then-->
+<!--      mkdir -p /run/user/1000/gvfs/sftp:host=amp01,port=2223,user=dylan/__VDS__ADS01/Plugins/$(ProjectName)/WebRoot/-->
+<!--      cp ./WebRoot/*.* /run/user/1000/gvfs/sftp:host=amp01,port=2223,user=dylan/__VDS__ADS01/Plugins/$(ProjectName)/WebRoot/-->
+<!--      fi-->
+<!--    </PostBuildEvent>-->
+<!--  </PropertyGroup>-->
+
+  <!--  <PropertyGroup>-->
+  <!--    <PostBuildEvent>xcopy "$(TargetPath)" "$(SolutionDir)GSMyAdmin\bin\$(ConfigurationName)\Plugins\$(ProjectName)\" /Y-->
+
+  <!--      IF NOT EXIST "$(TargetDir)WebRoot\" GOTO NOWEB-->
+  <!--      xcopy "$(TargetDir)WebRoot\*.*" "$(SolutionDir)GSMyAdmin\bin\$(ConfigurationName)\Plugins\$(ProjectName)\WebRoot\" /Y /E-->
+  <!--      :NOWEB</PostBuildEvent>-->
+  <!--  </PropertyGroup>-->
+
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

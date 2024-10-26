@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{13CAD005-B499-4A4C-A9BD-F9CEA47402C6}") = "ServerWipePlugin", "ServerWipePlugin\ServerWipePlugin.csproj", "{0A951BF1-99FF-4DE7-A018-23758AC97EA2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A951BF1-99FF-4DE7-A018-23758AC97EA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A951BF1-99FF-4DE7-A018-23758AC97EA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A951BF1-99FF-4DE7-A018-23758AC97EA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A951BF1-99FF-4DE7-A018-23758AC97EA2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
