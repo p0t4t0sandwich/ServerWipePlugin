@@ -17,7 +17,9 @@ class WebMethods : WebMethodsBase
     public enum ServerWipePermissions {
         WipeFile,
         WipeFiles,
-        WipeServer
+        WipeServer,
+        EditLocalPreset,
+        LoadExternalPresets
     }
     
     [JSONMethod(
@@ -39,4 +41,36 @@ class WebMethods : WebMethodsBase
         "An ActionResult indicating the success or failure of the operation.")]
     [RequiresPermissions(ServerWipePermissions.WipeServer)]
     public ActionResult WipeServer() => _plugin.WipeServer();
+    
+    [JSONMethod(
+        "Save a preset of files to wipe.",
+        "An ActionResult indicating the success or failure of the operation.")]
+    [RequiresPermissions(ServerWipePermissions.EditLocalPreset)]
+    public ActionResult SaveLocalPreset(
+        [ParameterDescription("The name of the preset to save")] string presetName = "",
+        [ParameterDescription("The list of file paths to store in the preset")] List<string> paths = null
+        ) => _plugin.SaveLocalPreset(presetName, paths);
+    
+    [JSONMethod(
+        "Delete a preset of files to wipe.",
+        "An ActionResult indicating the success or failure of the operation.")]
+    [RequiresPermissions(ServerWipePermissions.EditLocalPreset)]
+    public ActionResult DeleteLocalPreset(
+        [ParameterDescription("The name of the preset to delete")] string presetName = ""
+        ) => _plugin.DeleteLocalPreset(presetName);
+
+    [JSONMethod(
+        "Load a list of presets from an external source.",
+        "An ActionResult indicating the success or failure of the operation.")]
+    [RequiresPermissions(ServerWipePermissions.LoadExternalPresets)]
+    public Dictionary<string, Dictionary<string, List<string>>> LoadExternalPresets() => _plugin.LoadExternalPresets();
+    
+    [JSONMethod(
+        "Wipe the server using a wipe preset.",
+        "An ActionResult indicating the success or failure of the operation.")]
+    [RequiresPermissions(ServerWipePermissions.WipeServer)]
+    public ActionResult WipeByPreset(
+        [ParameterDescription("The source of the preset (\"Local\" by default)")] string source,
+        [ParameterDescription("The name of the preset to use")] string presetName
+        ) => _plugin.WipeByPreset(source, presetName);
 }
