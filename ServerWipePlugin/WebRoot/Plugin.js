@@ -5,21 +5,17 @@ this.plugin = {
     PostInit: function () {},
     Reset: function () {},
     StartupFailure: function () {},
-    SettingChanged: async function (node, value) {
-        console.log("SettingChanged", node, value);
-        if (suppressSettingUpdates) {
-            return;
-        }
-        switch (node) {
-            case "ServerWipePlugin.ServerWipe.CurrentPreset":
-                let filesToWipe = currentSettings["ServerWipePlugin.ServerWipe.FilesToWipe"];
-                await filesToWipe?.category.click();
-                let presetName = currentSettings["ServerWipePlugin.ServerWipe.PresetName"];
-                await presetName?.category.click();
-        }
-    },
+    SettingChanged: async function (node, value) {},
     AMPDataLoaded: function () {},
-    PushedMessage: function(source, message, data) {}
+    PushedMessage: function(source, message, data) {
+        switch (message) {
+            case "refreshsettings":
+                for (const key in data) {
+                    currentSettings[key].value(data[key]);
+                }
+                break;
+        }
+    }
 };
 
 this.tabs = [

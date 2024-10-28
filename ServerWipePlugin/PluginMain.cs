@@ -54,10 +54,10 @@ public class PluginMain : AMPPlugin {
             Settings.ServerWipe.PresetName = "";
             Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.PresetName));
             
-            // _message.Push("refreshsettings", new Dictionary<string, object> {
-            //     { "ServerWipePlugin.ServerWipe.FilesToWipe", new List<string>() },
-            //     { "ServerWipePlugin.ServerWipe.PresetName", "None" }
-            // });
+            _message.Push("refreshsettings", new Dictionary<string, object> {
+                {"ServerWipePlugin.ServerWipe.FilesToWipe", new List<string>()},
+                {"ServerWipePlugin.ServerWipe.PresetName", ""}
+            });
             return;
         }
         var parts = ((string) e.NewValue).Split(": ");
@@ -69,10 +69,10 @@ public class PluginMain : AMPPlugin {
             Settings.ServerWipe.PresetName = parts[1];
             Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.PresetName));
             
-            // _message.Push("refreshsettings", new Dictionary<string, object> {
-            //     { "ServerWipePlugin.ServerWipe.FilesToWipe", files },
-            //     { "ServerWipePlugin.ServerWipe.PresetName", parts[1] }
-            // });
+            _message.Push("refreshsettings", new Dictionary<string, object> {
+                {"ServerWipePlugin.ServerWipe.FilesToWipe", files},
+                {"ServerWipePlugin.ServerWipe.PresetName", parts[1]}
+            });
             return;
         }
     }
