@@ -18,16 +18,6 @@ this.plugin = {
     }
 };
 
-this.tabs = [
-    {
-        File: "wipe_presets.json",
-        ExternalTab: true,
-        ShortName: "WipePresets",
-        Name: "Wipe Presets",
-        Icon: "",
-        Light: false,
-        Category: ""
-    }
-];
+this.tabs = [];
 
 this.stylesheet = "";
