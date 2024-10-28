@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using FileManagerPlugin;
 using GSMyAdmin;
 using Newtonsoft.Json;
@@ -18,6 +19,7 @@ public class PluginMain : AMPPlugin {
     private readonly IPlatformInfo _platform;
     private readonly IPluginMessagePusher _message;
     private readonly IFeatureManager _features;
+    private IVirtualFileService _fileManager;
     public Dictionary<string, List<string>> LocalPresets;
     public Dictionary<string, Dictionary<string, List<string>>> ExternalPresets;
     public static Dictionary<string, Dictionary<string, List<string>>> Presets;
@@ -79,11 +81,28 @@ public class PluginMain : AMPPlugin {
 
     public override bool HasFrontendContent => true;
 
-    public override void PostInit() {}
+    public override void PostInit() {
+        _fileManager = (IVirtualFileService) _features.RequestFeature<IWSTransferHandler>();
+    }
 
     public override IEnumerable<SettingStore> SettingStores => Utilities.EnumerableFrom(Settings);
 
-    public ActionResult WipeFile(string path) {
+    private List<string> GetMatchedPaths(string path) {
+        if (!path.Contains('*')) {
+            return [path];
+        }
+        _log.Debug($"Getting matched paths for {path}");
+        
+        var regex = new Regex("^" + Regex.Escape(path).Replace("\\*", ".*") + "$");
+        var dirToSearch = path[..path.IndexOf('*')];
+        var dir = dirToSearch[..(dirToSearch.LastIndexOf('/') + 1)];
+        return _fileManager.GetDirectoryListing(dir)
+            .Where(file => regex.IsMatch(dir + file.Filename))
+            .Select(file => dir + file.Filename)
+            .ToList();
+    }
+
+    private ActionResult WipeFile(string path) {
         if (string.IsNullOrWhiteSpace(path)) {
             _log.Error("Path is empty");
             return ActionResult.FailureReason("Path is empty");
@@ -112,8 +131,13 @@ public class PluginMain : AMPPlugin {
     
     public ActionResult WipeFiles(List<string> paths) {
         var result = ActionResult.Success;
-        foreach (var wipeResult in paths.Select(WipeFile).Where(wipeResult => !wipeResult.Status)) {
-            result = wipeResult;
+        foreach (var path in paths) {
+            foreach (var p in GetMatchedPaths(path)) {
+                var wipeResult = WipeFile(p);
+                if (!wipeResult.Status) {
+                    result = wipeResult;
+                }
+            }
         }
         return result;
     }
@@ -220,7 +244,7 @@ public class PluginMain : AMPPlugin {
     }
 
     [ScheduleableTask("Wipe a single file/directory")]
-    public ActionResult ScheduleWipeFile(string path) => WipeFile(path);
+    public ActionResult ScheduleWipeFile(string path)  => WipeFiles([path]);
     
     [ScheduleableTask("Wipe multiple files/directories")]
     public ActionResult ScheduleWipeFiles(

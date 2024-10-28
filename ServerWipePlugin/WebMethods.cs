@@ -27,7 +27,7 @@ class WebMethods : WebMethodsBase
         "An ActionResult indicating the success or failure of the operation.")]
     [RequiresPermissions(ServerWipePermissions.WipeFile)]
     public ActionResult WipeFile(
-        [ParameterDescription("The path to the file/directory to wipe")] string path) => _plugin.WipeFile(path);
+        [ParameterDescription("The path to the file/directory to wipe")] string path) => _plugin.WipeFiles([path]);
     
     [JSONMethod(
         "Wipe the server using the list of files/directories specified in the settings.",
