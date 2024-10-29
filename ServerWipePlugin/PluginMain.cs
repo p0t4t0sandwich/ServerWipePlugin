@@ -49,36 +49,32 @@ public class PluginMain : AMPPlugin {
 
     private void Settings_SettingModified(object sender, SettingModifiedEventArgs e) {
         if (e.NodeName != "ServerWipePlugin.ServerWipe.CurrentPreset") return;
+        var refresh = new Dictionary<string, object>();
         if ((string) e.NewValue == "None") {
             _log.Debug("Setting current preset to None");
             
-            Settings.ServerWipe.PresetName = "";
-            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.PresetName));
-            Settings.ServerWipe.FilesToWipe = [];
-            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.FilesToWipe));
-            
-            _message.Push("refreshsettings", new Dictionary<string, object> {
-                {"ServerWipePlugin.ServerWipe.PresetName", ""},
-                {"ServerWipePlugin.ServerWipe.FilesToWipe", new List<string>()}
-            });
-            return;
+            refresh["ServerWipePlugin.ServerWipe.PresetName"] = "";
+            refresh["ServerWipePlugin.ServerWipe.FilesToWipe"] = new List<string>();
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingNode"] = "";
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingValue"] = "";
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingMin"] = 0;
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingMax"] = -1;
         }
         var parts = ((string) e.NewValue).Split(": ");
         foreach (var kvp in Presets) {
             if (kvp.Key != parts[0] || !kvp.Value.TryGetValue(parts[1], out var preset)) continue;
             _log.Debug($"Setting current preset to {parts[1]} from {parts[0]}");
             
-            Settings.ServerWipe.PresetName = preset.Name;
-            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.PresetName));
-            Settings.ServerWipe.FilesToWipe = preset.FilesToWipe;
-            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.FilesToWipe));
-            
-            _message.Push("refreshsettings", new Dictionary<string, object> {
-                {"ServerWipePlugin.ServerWipe.PresetName", preset.Name},
-                {"ServerWipePlugin.ServerWipe.FilesToWipe", preset.FilesToWipe}
-            });
-            return;
+            refresh["ServerWipePlugin.ServerWipe.PresetName"] = preset.Name;
+            refresh["ServerWipePlugin.ServerWipe.FilesToWipe"] = preset.FilesToWipe;
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingNode"] = preset.SeedSettingNode;
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingValue"] = preset.SeedSettingValue;
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingMin"] = preset.SeedSettingMin;
+            refresh["ServerWipePlugin.ServerWipe.SeedSettingMax"] = preset.SeedSettingMax;
+            break;
         }
+        
+        _message.Push("setsettings", refresh);
     }
 
     public override bool HasFrontendContent => true;
@@ -143,9 +139,25 @@ public class PluginMain : AMPPlugin {
         }
         return result;
     }
+
+    public ActionResult SetSeed(WipePreset preset) {
+        if (string.IsNullOrWhiteSpace(preset.SeedSettingNode)) return ActionResult.FailureReason("Seed setting node is empty");
+        var refresh = new Dictionary<string, object>();
+        if (!string.IsNullOrWhiteSpace(preset.SeedSettingValue)) {
+            refresh[preset.SeedSettingNode] = preset.SeedSettingValue;
+        } else {
+            var seed = new Random().Next(preset.SeedSettingMin,
+                preset.SeedSettingMax == -1 ? int.MaxValue : preset.SeedSettingMax);
+            refresh[preset.SeedSettingNode] = seed;
+        }
+        _log.Debug($"Setting seed setting {preset.SeedSettingNode} to {refresh[preset.SeedSettingNode]}");
+        _message.Push("setsettings", refresh);
+        return ActionResult.Success;
+    }
     
     public ActionResult WipeServer() {
         _log.Debug("Wiping server");
+        SetSeed(Settings.ServerWipe.ToPreset());
         var files = Settings.ServerWipe.FilesToWipe;
         return WipeFiles(files);
     }
@@ -162,6 +174,9 @@ public class PluginMain : AMPPlugin {
             !value.TryGetValue(presetName, out var preset)) {
             return ActionResult.FailureReason("Preset not found");
         }
+        
+        SetSeed(preset);
+        
         return WipeFiles(preset.FilesToWipe);
     }
 

@@ -5,6 +5,8 @@
       "world",
       "world_nether",
       "world_the_end"
-    ]
+    ],
+    "SeedSettingNode": "MinecraftModule.Minecraft.WorldSeed",
+    "SeedSettingValue": ""
   }
 }
