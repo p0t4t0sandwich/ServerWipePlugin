@@ -1,5 +1,6 @@
 {
   "Minecraft": {
+    "Name": "Minecraft",
     "FilesToWipe": [
       "world",
       "world_nether",
