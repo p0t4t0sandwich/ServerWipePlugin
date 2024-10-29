@@ -20,9 +20,9 @@ public class PluginMain : AMPPlugin {
     private readonly IPluginMessagePusher _message;
     private readonly IFeatureManager _features;
     private IVirtualFileService _fileManager;
-    public Dictionary<string, List<string>> LocalPresets;
-    public Dictionary<string, Dictionary<string, List<string>>> ExternalPresets;
-    public static Dictionary<string, Dictionary<string, List<string>>> Presets;
+    public Dictionary<string, WipePreset> LocalPresets;
+    public Dictionary<string, Dictionary<string, WipePreset>> ExternalPresets;
+    public static Dictionary<string, Dictionary<string, WipePreset>> Presets;
     
     private static readonly HttpClient cl = new();
     private static readonly JsonSerializerSettings serConfig = new() { NullValueHandling = NullValueHandling.Ignore };
@@ -51,29 +51,31 @@ public class PluginMain : AMPPlugin {
         if (e.NodeName != "ServerWipePlugin.ServerWipe.CurrentPreset") return;
         if ((string) e.NewValue == "None") {
             _log.Debug("Setting current preset to None");
-            Settings.ServerWipe.FilesToWipe = [];
-            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.FilesToWipe));
+            
             Settings.ServerWipe.PresetName = "";
             Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.PresetName));
+            Settings.ServerWipe.FilesToWipe = [];
+            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.FilesToWipe));
             
             _message.Push("refreshsettings", new Dictionary<string, object> {
-                {"ServerWipePlugin.ServerWipe.FilesToWipe", new List<string>()},
-                {"ServerWipePlugin.ServerWipe.PresetName", ""}
+                {"ServerWipePlugin.ServerWipe.PresetName", ""},
+                {"ServerWipePlugin.ServerWipe.FilesToWipe", new List<string>()}
             });
             return;
         }
         var parts = ((string) e.NewValue).Split(": ");
         foreach (var kvp in Presets) {
-            if (kvp.Key != parts[0] || !kvp.Value.TryGetValue(parts[1], out var files)) continue;
+            if (kvp.Key != parts[0] || !kvp.Value.TryGetValue(parts[1], out var preset)) continue;
             _log.Debug($"Setting current preset to {parts[1]} from {parts[0]}");
-            Settings.ServerWipe.FilesToWipe = files;
-            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.FilesToWipe));
-            Settings.ServerWipe.PresetName = parts[1];
+            
+            Settings.ServerWipe.PresetName = preset.Name;
             Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.PresetName));
+            Settings.ServerWipe.FilesToWipe = preset.FilesToWipe;
+            Settings.NotifySettingModified(this, new SettingModifiedEventArgs(() => Settings.ServerWipe.FilesToWipe));
             
             _message.Push("refreshsettings", new Dictionary<string, object> {
-                {"ServerWipePlugin.ServerWipe.FilesToWipe", files},
-                {"ServerWipePlugin.ServerWipe.PresetName", parts[1]}
+                {"ServerWipePlugin.ServerWipe.PresetName", preset.Name},
+                {"ServerWipePlugin.ServerWipe.FilesToWipe", preset.FilesToWipe}
             });
             return;
         }
@@ -157,20 +159,20 @@ public class PluginMain : AMPPlugin {
             return ActionResult.FailureReason("Preset name is empty");
         }
         if (!Presets.TryGetValue(source, out var value) ||
-            !value.TryGetValue(presetName, out var files)) {
+            !value.TryGetValue(presetName, out var preset)) {
             return ActionResult.FailureReason("Preset not found");
         }
-        return WipeFiles(files);
+        return WipeFiles(preset.FilesToWipe);
     }
 
     private const string PresetFile = "wipePresets.json";
 
-    private static Dictionary<string, List<string>> LoadLocalPresets() {
+    private static Dictionary<string, WipePreset> LoadLocalPresets() {
         if (!File.Exists(PresetFile)) {
-            return new Dictionary<string, List<string>>();
+            return new Dictionary<string, WipePreset>();
         }
         var json = File.ReadAllText(PresetFile);
-        return JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(json);
+        return JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(json);
     }
     
     public ActionResult SaveLocalPreset(string presetName, List<string> paths) {
@@ -180,7 +182,7 @@ public class PluginMain : AMPPlugin {
         _log.Debug($"Saving local preset {presetName}");
         
         paths ??= Settings.ServerWipe.FilesToWipe;
-        LocalPresets[presetName] = paths;
+        LocalPresets[presetName] = new WipePreset {Name = presetName, FilesToWipe = paths};
         var json = JsonConvert.SerializeObject(LocalPresets);
         File.WriteAllText(PresetFile, json);
         return ActionResult.Success;
@@ -206,22 +208,22 @@ public class PluginMain : AMPPlugin {
         File.WriteAllText(ExternalPresetsCacheFile, json);
     }
     
-    private static Dictionary<string, Dictionary<string, List<string>>> LoadExternalPresetsFromCache() {
+    private static Dictionary<string, Dictionary<string, WipePreset>> LoadExternalPresetsFromCache() {
         if (!File.Exists(ExternalPresetsCacheFile)) {
-            return new Dictionary<string, Dictionary<string, List<string>>>();
+            return new Dictionary<string, Dictionary<string, WipePreset>>();
         }
         var json = File.ReadAllText(ExternalPresetsCacheFile);
-        return JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, List<string>>>>(json);
+        return JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, WipePreset>>>(json);
     }
     
-    private static Dictionary<string, List<string>> FetchExternalPreset(Uri url) {
+    private static Dictionary<string, WipePreset> FetchExternalPreset(Uri url) {
         var json = cl.GetStringAsync(url).Result;
-        return JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(json, serConfig);
+        return JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(json, serConfig);
     }
 
-    private Dictionary<string, Dictionary<string, List<string>>> FetchExternalPresets() {
+    private Dictionary<string, Dictionary<string, WipePreset>> FetchExternalPresets() {
         _log.Debug("Fetching external presets...");
-        var presets = new Dictionary<string, Dictionary<string, List<string>>>();
+        var presets = new Dictionary<string, Dictionary<string, WipePreset>>();
         foreach (var (name, url) in Settings.ServerWipe.ExternalPresets) {
             _log.Debug($"Fetching external preset {name} from {url}");
             presets[name] = FetchExternalPreset(new Uri(url));
@@ -235,7 +237,7 @@ public class PluginMain : AMPPlugin {
         Presets["Local"] = LocalPresets;
     }
     
-    public Dictionary<string, Dictionary<string, List<string>>> LoadExternalPresets() {
+    public Dictionary<string, Dictionary<string, WipePreset>> LoadExternalPresets() {
         _log.Debug("Loading external presets");
         ExternalPresets = FetchExternalPresets();
         SaveExternalPresets();

@@ -63,7 +63,7 @@ class WebMethods : WebMethodsBase
         "Load a list of presets from an external source.",
         "An ActionResult indicating the success or failure of the operation.")]
     [RequiresPermissions(ServerWipePermissions.LoadExternalPresets)]
-    public Dictionary<string, Dictionary<string, List<string>>> LoadExternalPresets() => _plugin.LoadExternalPresets();
+    public Dictionary<string, Dictionary<string, WipePreset>> LoadExternalPresets() => _plugin.LoadExternalPresets();
     
     [JSONMethod(
         "Wipe the server using a wipe preset.",

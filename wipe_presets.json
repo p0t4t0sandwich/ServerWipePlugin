@@ -1,7 +1,9 @@
 {
-  "Minecraft": [
-    "world",
-    "world_nether",
-    "world_the_end"
-  ]
+  "Minecraft": {
+    "FilesToWipe": [
+      "world",
+      "world_nether",
+      "world_the_end"
+    ]
+  }
 }
