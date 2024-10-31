@@ -58,9 +58,8 @@ public class PluginMain : AMPPlugin {
         Dictionary<string, string> configs = new();
         foreach (var kvp in settings) {
             configs[kvp.Key] = kvp.Value switch {
-                List<string> list => JsonConvert.SerializeObject(list),
-                Dictionary<string, object> dict => JsonConvert.SerializeObject(dict),
-                _ => settings[kvp.Key].ToString()
+                string str => str,
+                _ => JsonConvert.SerializeObject(settings[kvp.Key])
             };
             Core.SetConfig(kvp.Key, configs[kvp.Key]);
         }
@@ -242,12 +241,12 @@ public class PluginMain : AMPPlugin {
             if (Settings.ServerWipe.InitLocalPresets == "") {
                 return new Dictionary<string, WipePreset>();
             }
-            var localPresets = JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(Settings.ServerWipe.InitLocalPresets);
+            var localPresets = JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(Settings.ServerWipe.InitLocalPresets, serConfig);
             Settings.ServerWipe.InitLocalPresets = "";
             return localPresets;
         }
         var json = File.ReadAllText(PresetFile);
-        return JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(json);
+        return JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(json, serConfig);
     }
     
     public ActionResult SaveLocalPreset(
@@ -270,7 +269,7 @@ public class PluginMain : AMPPlugin {
         _log.Debug($"Saving local preset {preset.Name}");
         
         LocalPresets[preset.Name] = preset;
-        var json = JsonConvert.SerializeObject(LocalPresets);
+        var json = JsonConvert.SerializeObject(LocalPresets, serConfig);
         File.WriteAllText(PresetFile, json);
         return ActionResult.Success;
     }
@@ -282,7 +281,7 @@ public class PluginMain : AMPPlugin {
         _log.Debug($"Deleting local preset {presetName}");
         
         LocalPresets.Remove(presetName);
-        var json = JsonConvert.SerializeObject(LocalPresets);
+        var json = JsonConvert.SerializeObject(LocalPresets, serConfig);
         File.WriteAllText(PresetFile, json);
         return ActionResult.Success;
     }
@@ -291,7 +290,7 @@ public class PluginMain : AMPPlugin {
 
     private void SaveExternalPresets() {
         _log.Debug("Saving external presets");
-        var json = JsonConvert.SerializeObject(ExternalPresets);
+        var json = JsonConvert.SerializeObject(ExternalPresets, serConfig);
         File.WriteAllText(ExternalPresetsCacheFile, json);
     }
     
@@ -300,7 +299,7 @@ public class PluginMain : AMPPlugin {
             return new Dictionary<string, Dictionary<string, WipePreset>>();
         }
         var json = File.ReadAllText(ExternalPresetsCacheFile);
-        return JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, WipePreset>>>(json);
+        return JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, WipePreset>>>(json, serConfig);
     }
     
     private static Dictionary<string, WipePreset> FetchExternalPreset(Uri url) {
