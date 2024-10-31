@@ -15,10 +15,6 @@ this.plugin = {
                 for (const key in data) {
                     currentSettings[key].value(data[key]);
                 }
-                // Now actually update the settings
-                for (const key in data) {
-                    await changeValue(currentSettings[key], data[key]);
-                }
                 suppressSettingUpdates = false;
                 break;
         }
@@ -28,33 +24,3 @@ this.plugin = {
 this.tabs = [];
 
 this.stylesheet = "";
-
-// Borrowed from AMP.js Line 1537-1582
-async function changeValue(self, newValue) {
-    let useValue = self.value();
-
-    if (self.settingType.startsWith("Dictionary<")) {
-        let kvp = self.value();
-        useValue = {};
-
-        for (const element of kvp) {
-            useValue[element.Key] = element.Value;
-        }
-    }
-
-    newValue = self.isComplexType ? JSON.stringify(useValue) : useValue;
-
-    if (self.inputType == "checkbox") {
-        self.tooltipClass("tooltiptext tooltiphigher " + (newValue ? "tooltipfarright" : "tooltipright"));
-    }
-
-    const result = await API.Core.SetConfigAsync(self.node, newValue);
-
-    if (result.Status === false) {
-        self.value(self.oldValue);
-    }
-    else {
-        self.oldValue = useValue;
-        PluginHandler.NotifyPluginSettingChanged(self.node, newValue);
-    }
-}

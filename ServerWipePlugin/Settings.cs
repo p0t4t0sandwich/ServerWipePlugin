@@ -52,6 +52,10 @@ public class Settings : SettingStore {
         [InlineAction("ServerWipePlugin", "LoadExternalPresets", "Load Presets")]
         public Dictionary<string, string> ExternalPresets = new();
         
+        [ProvisionSetting("Local wipe presets (a JSON string containing the config, which is then saved locally)", null, "")]
+        [WebSetting("Init Local Presets", "A hidden setting used to initialize the local presets with provision arguments")]
+        public string InitLocalPresets = "";
+        
         public WipePreset ToPreset() {
             return new WipePreset {
                 Name = PresetName,
