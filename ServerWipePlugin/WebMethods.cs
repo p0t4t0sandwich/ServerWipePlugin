@@ -23,29 +23,40 @@ class WebMethods : WebMethodsBase
     }
     
     [JSONMethod(
-        "Wipe a single file or directory.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Wipe a single file or directory",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.WipeFile)]
     public ActionResult WipeFile(
-        [ParameterDescription("The path to the file/directory to wipe")] string path) => _plugin.WipeFiles([path]);
+        [ParameterDescription("The path to the file/directory to wipe")] string path,
+        [ParameterDescription("Dry run")] bool dryRun = false
+        ) => _plugin.WipeFiles([path], dryRun);
     
     [JSONMethod(
-        "Wipe the server using the list of files/directories specified in the settings.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Wipe the server using the list of files/directories specified in the settings",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.WipeFiles)]
     public ActionResult WipeFiles(
-        [ParameterDescription("The list of files/directory to wipe")] List<string> filesToWipe) => _plugin.WipeFiles(filesToWipe);
+        [ParameterDescription("The list of files/directory to wipe")] List<string> filesToWipe,
+        [ParameterDescription("Dry run")] bool dryRun = false
+        ) => _plugin.WipeFiles(filesToWipe, dryRun);
 
     [JSONMethod(
-        "Wipe the server using the list of files/directories specified in the settings.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Wipe the server using the list of files/directories specified in the settings",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.WipeServer)]
     public ActionResult WipeServer([ParameterDescription("Reset the server's seed")] bool resetSeed = false
     ) => _plugin.WipeServer(resetSeed);
     
     [JSONMethod(
-        "Save a preset of files to wipe.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Wipe the server using the list of files/directories specified in the settings",
+        "An ActionResult indicating the success or failure of the operation")]
+    [RequiresPermissions(ServerWipePermissions.WipeServer)]
+    public ActionResult WipeServerDryRun([ParameterDescription("Reset the server's seed")] bool resetSeed = false
+    ) => _plugin.WipeServer(resetSeed);
+    
+    [JSONMethod(
+        "Save a preset of files to wipe",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.EditLocalPreset)]
     public ActionResult SaveLocalPreset(
         [ParameterDescription("The name of the preset to save")] string presetName = "",
@@ -57,26 +68,27 @@ class WebMethods : WebMethodsBase
         ) => _plugin.SaveLocalPreset(presetName, filesToWipe, seedSettingNode, seedSettingValue, seedSettingMin, seedSettingMax);
     
     [JSONMethod(
-        "Delete a preset of files to wipe.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Delete a preset of files to wipe",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.EditLocalPreset)]
     public ActionResult DeleteLocalPreset(
         [ParameterDescription("The name of the preset to delete")] string presetName = ""
         ) => _plugin.DeleteLocalPreset(presetName);
 
     [JSONMethod(
-        "Load a list of presets from an external source.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Load a list of presets from an external source",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.LoadExternalPresets)]
     public Dictionary<string, Dictionary<string, WipePreset>> LoadExternalPresets() => _plugin.LoadExternalPresets();
     
     [JSONMethod(
-        "Wipe the server using a wipe preset.",
-        "An ActionResult indicating the success or failure of the operation.")]
+        "Wipe the server using a wipe preset",
+        "An ActionResult indicating the success or failure of the operation")]
     [RequiresPermissions(ServerWipePermissions.WipeServer)]
     public ActionResult WipeByPreset(
         [ParameterDescription("The source of the preset (\"Local\" by default)")] string source,
         [ParameterDescription("The name of the preset to use")] string presetName,
-        [ParameterDescription("Reset the server's seed")] bool resetSeed = false
-        ) => _plugin.WipeByPreset(source, presetName, resetSeed);
+        [ParameterDescription("Reset the server's seed")] bool resetSeed = false,
+        [ParameterDescription("Dry run")] bool dryRun = false
+        ) => _plugin.WipeByPreset(source, presetName, resetSeed, dryRun);
 }

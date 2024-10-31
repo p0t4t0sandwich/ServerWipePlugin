@@ -16,6 +16,7 @@ public class Settings : SettingStore {
     public class ServerWipeSettings : SettingSectionStore {
         [WebSetting("Files to Wipe", "A list of file/directory paths that you'd like to wipe (can be invoked via the scheduler)", false)]
         [InlineAction("ServerWipePlugin", "WipeServer", "Wipe Now")]
+        [InlineAction("ServerWipePlugin", "WipeServerDryRun", "Dry Run")]
         public List<string> FilesToWipe = [];
         
         [WebSetting("Current Preset", "A preset of files to wipe (please note, this will override any changes you've made to the current preset)", false)]
@@ -30,12 +31,12 @@ public class Settings : SettingStore {
             return list;
         }
         
-        [WebSetting("Preset Name", "Used when creating new presets", false)]
+        [WebSetting("Preset Name", "Used when creating new or updating existing presets", false)]
         [InlineAction("ServerWipePlugin", "SaveLocalPreset", "Save Preset")]
         [InlineAction("ServerWipePlugin", "DeleteLocalPreset", "Delete Preset")]
         public string PresetName;
         
-        [WebSetting("Seed Setting Node", "The node in the seed settings to change", false)]
+        [WebSetting("Seed Setting Node", "The setting to change when setting the seed (enable \"Show development information\" within the instance to view setting nodes)", false)]
         public string SeedSettingNode = "";
         
         [WebSetting("Seed Setting Value", "The value to set the seed setting to, in cases where you want to hardcode the seed", false)]
