@@ -14,6 +14,7 @@ class WebMethods : WebMethodsBase
         _plugin = plugin;
     }
 
+    [PermissionNodeName("ServerWipe")]
     public enum ServerWipePermissions {
         WipeFile,
         WipeFiles,
