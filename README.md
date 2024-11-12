@@ -12,8 +12,10 @@ An AMP plugin that can wipe server files with scheduled tasks
     * You only need to repeat this when there are updates to the plugin's `WebRoot` files
 4. Restart the ADS instance(s) if it's your first time installing the plugin
 5. Extract the contents of the zip file to the `Plugins` directory in the instance that you want to run the plugin on
-6. Reactivate the instance with your Developer licence key
-7. Start the instance if necessary
+6. Run the command `ampinstmgr reconfigure TheInstanceName01 +Core.AMP.LoadPlugins ServerWipePlugin` so the plugin loads
+    * Alternatively stop the instance and edit it's `AMPConfig.conf` so that `AMP.LoadPlugins` includes `"ServerWipePlugin"`
+7. Reactivate the instance with your Developer licence key
+8. Start the instance
 
 ## **Important Note**
 
