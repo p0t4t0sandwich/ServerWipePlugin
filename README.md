@@ -17,11 +17,11 @@ An AMP plugin that can wipe server files with scheduled tasks
    * Example entry: `AMP.LoadPlugins=["ServerWipePlugin"]`
 <!-- 6. Run the command `ampinstmgr reconfigure TheInstanceName01 +Core.AMP.LoadPlugins ServerWipePlugin` so the plugin loads
     * Alternatively stop the instance and edit it's `AMPConfig.conf` so that `AMP.LoadPlugins=[]` includes `"ServerWipePlugin"` -->
-8. Reactivate the instance with your Developer licence key
+7. Reactivate the instance with your Developer licence key
    * You can get your developer licence key from the [CubeCoders Licence Manager](https://cubecoders.com/account) 
    * On Windows, run the following in CMD: `ampinstmgr reactivate TheInstanceName01 the-dev-licence-key`
    * On Linux, run `sudo su -l amp` to switch to the `amp` user, then run `ampinstmgr reactivate TheInstanceName01 the-dev-licence-key`
-9. Start the instance
+8. Start the instance
 
 ## **Important Note**
 
