@@ -59,16 +59,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ModuleShared">
-      <HintPath>../../../AMP/Mainline/20241030.2/AMP_x86_64/ModuleShared.dll</HintPath>
+      <HintPath>../../../AMP/Mainline/20251114.1/AMP_x86_64/ModuleShared.dll</HintPath>
     </Reference>
     <Reference Include="AMP">
-      <HintPath>../../../AMP/Mainline/20241030.2/AMP_x86_64/AMP.dll</HintPath>
+      <HintPath>../../../AMP/Mainline/20251114.1/AMP_x86_64/AMP.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>../../../AMP/Mainline/20241030.2/AMP_x86_64/Newtonsoft.Json.dll</HintPath>
+      <HintPath>../../../AMP/Mainline/20251114.1/AMP_x86_64/Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="FileManagerPlugin">
-      <HintPath>../../../AMP/Mainline/20241030.2/AMP_x86_64/Plugins/FileManagerPlugin/FileManagerPlugin.dll</HintPath>
+      <HintPath>../../../AMP/Mainline/20251114.1/AMP_x86_64/Plugins/FileManagerPlugin/FileManagerPlugin.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

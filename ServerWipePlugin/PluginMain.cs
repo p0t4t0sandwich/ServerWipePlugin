@@ -1,6 +1,7 @@
 ﻿using System;
 using ModuleShared;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -12,10 +13,15 @@ using Newtonsoft.Json;
 namespace ServerWipePlugin;
 
 [AMPDependency("FileManagerPlugin")]
+[SuppressMessage("ReSharper", "ClassNeverInstantiated.Global")]
+[SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 public class PluginMain : AMPPlugin {
     public readonly Settings Settings;
     private readonly ILogger _log;
+    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
     private readonly IConfigSerializer _config;
+    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
     private readonly IPlatformInfo _platform;
     private readonly IPluginMessagePusher _message;
     private readonly IFeatureManager _features;
@@ -99,7 +105,7 @@ public class PluginMain : AMPPlugin {
         _fileManager = (IVirtualFileService) _features.RequestFeature<IWSTransferHandler>();
     }
 
-    public override IEnumerable<SettingStore> SettingStores => Utilities.EnumerableFrom(Settings);
+    public override IEnumerable<SettingStore> SettingStores => [Settings];
 
     private void Settings_SettingModified(object sender, SettingModifiedEventArgs e) {
         if (e.NodeName != "ServerWipePlugin.ServerWipe.CurrentPreset") return;
