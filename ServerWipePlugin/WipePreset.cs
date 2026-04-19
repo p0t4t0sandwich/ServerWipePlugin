@@ -12,3 +12,9 @@ public class WipePreset {
     public int SeedSettingMin = 0;
     public int SeedSettingMax = -1;
 }
+
+[Serializable]
+public class WipePresetGroup : Dictionary<string, WipePreset>;
+
+[Serializable]
+public class WipePresetCollection : Dictionary<string, WipePresetGroup>;

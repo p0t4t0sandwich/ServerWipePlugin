@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using FileManagerPlugin;
 using GSMyAdmin.WebServer;
 using Newtonsoft.Json;
@@ -72,9 +73,9 @@ public class PluginMain : AMPPlugin {
         _message.Push("setsettings", settings);
     }
     
-    public Dictionary<string, WipePreset> LocalPresets;
-    public Dictionary<string, Dictionary<string, WipePreset>> ExternalPresets;
-    public static Dictionary<string, Dictionary<string, WipePreset>> Presets;
+    public WipePresetGroup LocalPresets;
+    public WipePresetCollection ExternalPresets;
+    public static WipePresetCollection Presets;
     
     private static readonly HttpClient cl = new();
     private static readonly JsonSerializerSettings serConfig = new() { NullValueHandling = NullValueHandling.Ignore };
@@ -92,22 +93,37 @@ public class PluginMain : AMPPlugin {
         Settings.SettingModified += Settings_SettingModified;
     }
 
-    public override void Init(out WebMethodsBase apiMethods) {
-        apiMethods = new WebMethods(this);
-        LocalPresets = LoadLocalPresets();
-        ExternalPresets = LoadExternalPresetsFromCache();
+    public override async Task<WebMethodsBase> InitAsync() {
+        WebMethodsBase apiMethods = new WebMethods(this);
+        LocalPresets = await LoadLocalPresets();
+        ExternalPresets = await LoadExternalPresetsFromCache();
         ConsolidatePresets();
+        return apiMethods;
     }
 
     public override bool HasFrontendContent => true;
 
-    public override void PostInit() {
+    public override Task PostInitAsync() {
         _fileManager = (IVirtualFileService) _features.RequestFeature<IWSTransferHandler>();
+        return Task.CompletedTask;
     }
 
     public override IEnumerable<SettingStore> SettingStores => [Settings];
 
-    private void Settings_SettingModified(object sender, SettingModifiedEventArgs e) {
+
+    private const string SeedSettingNode = "ServerWipePlugin.ServerWipe.SeedSettingNode";
+    public void Settings_SettingModified(object sender, SettingModifiedEventArgs e) {
+        if (e.NodeName == SeedSettingNode) {
+            if (sender is WebMethods or PluginMain) {
+                _message.Push("settingValueUpdate",
+                    new { SeedSettingNode, newValue = e.NewValue },
+                    RequiredPermission: "Settings.ServerWipePlugin.ServerWipe.SeedSettingNode", Source: "ServerWipePlugin");
+            } else {
+                // Reset the value if it's been modified elsewhere
+                Settings.ServerWipe.SeedSettingNode = "";
+            }
+        }
+        
         if (e.NodeName != "ServerWipePlugin.ServerWipe.CurrentPreset") return;
         var settings = new Dictionary<string, object>();
         if ((string) e.NewValue == "None") {
@@ -137,7 +153,7 @@ public class PluginMain : AMPPlugin {
         SetSettings(settings);
     }
     
-    private List<string> GetMatchedPaths(string path) {
+    private async Task<List<string>> GetMatchedPaths(string path) {
         if (!path.Contains('*')) {
             return [path];
         }
@@ -146,7 +162,7 @@ public class PluginMain : AMPPlugin {
         var regex = new Regex("^" + Regex.Escape(path).Replace("\\*", ".*") + "$");
         var dirToSearch = path[..path.IndexOf('*')];
         var dir = dirToSearch[..(dirToSearch.LastIndexOf('/') + 1)];
-        return _fileManager.GetDirectoryListing(dir)
+        return (await _fileManager.GetDirectoryListing(dir))
             .Where(file => regex.IsMatch(dir + file.Filename))
             .Select(file => dir + file.Filename)
             .ToList();
@@ -183,10 +199,10 @@ public class PluginMain : AMPPlugin {
         return ActionResult.Success;
     }
     
-    public ActionResult WipeFiles(List<string> filesToWipe, bool dryRun) {
+    public async Task<ActionResult> WipeFiles(List<string> filesToWipe, bool dryRun) {
         var result = ActionResult.Success;
         foreach (var path in filesToWipe) {
-            foreach (var p in GetMatchedPaths(path)) {
+            foreach (var p in await GetMatchedPaths(path)) {
                 var wipeResult = WipeFile(p, dryRun);
                 if (!wipeResult.Status) {
                     result = wipeResult;
@@ -200,22 +216,22 @@ public class PluginMain : AMPPlugin {
         if (string.IsNullOrWhiteSpace(preset.SeedSettingNode)) {
             return ActionResult.FailureReason("Seed setting node is empty");
         }
-        var settings = new Dictionary<string, object>();
+        string seed;
         if (!string.IsNullOrWhiteSpace(preset.SeedSettingValue)) {
-            settings[preset.SeedSettingNode] = preset.SeedSettingValue;
+            seed = preset.SeedSettingValue;
         } else {
-            var seed = new Random().Next(preset.SeedSettingMin,
-                preset.SeedSettingMax == -1 ? int.MaxValue : preset.SeedSettingMax);
-            settings[preset.SeedSettingNode] = seed;
+            seed = new Random().Next(preset.SeedSettingMin,
+                preset.SeedSettingMax == -1 ? int.MaxValue : preset.SeedSettingMax).ToString();
         }
-        _log.Info($"Setting seed setting {preset.SeedSettingNode} to {settings[preset.SeedSettingNode]}");
+        _log.Info($"Setting seed setting {preset.SeedSettingNode} to {seed}");
         if (!dryRun) {
-            SetSettings(settings);
+            _message.Push("settingValueUpdate", new { preset.SeedSettingNode, newValue = seed },
+                RequiredPermission: $"Settings.{preset.SeedSettingNode}", Source: "ServerWipePlugin");
         }
         return ActionResult.Success;
     }
     
-    public ActionResult WipeServer(bool resetSeed = false, bool dryRun = true) {
+    public async Task<ActionResult> WipeServer(bool resetSeed = false, bool dryRun = true) {
         if (dryRun) {
             _log.Info("Dry run enabled");
         }
@@ -226,10 +242,10 @@ public class PluginMain : AMPPlugin {
                 return result;
             }
         }
-        return WipeFiles(Settings.ServerWipe.FilesToWipe, dryRun);
+        return await WipeFiles(Settings.ServerWipe.FilesToWipe, dryRun);
     }
     
-    public ActionResult WipeByPreset(string source, string presetName, bool resetSeed, bool dryRun) {
+    public async Task<ActionResult> WipeByPreset(string source, string presetName, bool resetSeed, bool dryRun) {
         if (string.IsNullOrWhiteSpace(source)) {
             source = "Local";
         }
@@ -246,28 +262,34 @@ public class PluginMain : AMPPlugin {
         if (resetSeed) {
             result = SetSeed(preset, dryRun);
         }
-        return result.Status ? WipeFiles(preset.FilesToWipe, dryRun) : result;
+        return result.Status ? await WipeFiles(preset.FilesToWipe, dryRun) : result;
     }
 
     private const string PresetFile = "wipePresets.json";
 
-    private Dictionary<string, WipePreset> LoadLocalPresets() {
+    private async Task<WipePresetGroup> LoadLocalPresets() {
         if (!File.Exists(PresetFile)) {
             if (Settings.ServerWipe.InitLocalPresets == "") {
-                return new Dictionary<string, WipePreset>();
+                return new WipePresetGroup();
             }
-            var localPresets = JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(Settings.ServerWipe.InitLocalPresets, serConfig);
+            var localPresets = JsonConvert.DeserializeObject<WipePresetGroup>(Settings.ServerWipe.InitLocalPresets, serConfig);
             Settings.ServerWipe.InitLocalPresets = "";
             return localPresets;
         }
-        var json = File.ReadAllText(PresetFile);
-        return JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(json, serConfig);
+        var json = await File.ReadAllTextAsync(PresetFile);
+        return JsonConvert.DeserializeObject<WipePresetGroup>(json, serConfig);
     }
     
-    public ActionResult SaveLocalPreset(
+    public async Task<ActionResult> SaveLocalPreset(
         string presetName, List<string> filesToWipe,
         string seedSettingNode, string seedSettingValue,
-        int seedSettingMin, int seedSettingMax) {
+        int seedSettingMin, int seedSettingMax,
+        IWebSession session = null) {
+        if (!string.IsNullOrWhiteSpace(seedSettingNode)
+            && session != null && !session.HasPermission($"Settings.{seedSettingNode}")) {
+            return ActionResult.FailureReason($"This user does not have permissions for the seed setting node, {seedSettingNode}");
+        }
+        
         WipePreset preset;
         if (string.IsNullOrWhiteSpace(presetName)) {
             preset = Settings.ServerWipe.ToPreset();
@@ -285,11 +307,11 @@ public class PluginMain : AMPPlugin {
         
         LocalPresets[preset.Name] = preset;
         var json = JsonConvert.SerializeObject(LocalPresets, serConfig);
-        File.WriteAllText(PresetFile, json);
+        await File.WriteAllTextAsync(PresetFile, json);
         return ActionResult.Success;
     }
     
-    public ActionResult DeleteLocalPreset(string presetName) {
+    public async Task<ActionResult> DeleteLocalPreset(string presetName) {
         if (string.IsNullOrWhiteSpace(presetName)) {
             presetName = Settings.ServerWipe.PresetName;
         }
@@ -297,39 +319,54 @@ public class PluginMain : AMPPlugin {
         
         LocalPresets.Remove(presetName);
         var json = JsonConvert.SerializeObject(LocalPresets, serConfig);
-        File.WriteAllText(PresetFile, json);
+        await File.WriteAllTextAsync(PresetFile, json);
         return ActionResult.Success;
     }
     
     private const string ExternalPresetsCacheFile = "externalPresets.json";
 
-    private void SaveExternalPresets() {
+    private async Task SaveExternalPresets() {
         _log.Debug("Saving external presets");
         var json = JsonConvert.SerializeObject(ExternalPresets, serConfig);
-        File.WriteAllText(ExternalPresetsCacheFile, json);
+        await File.WriteAllTextAsync(ExternalPresetsCacheFile, json);
     }
     
-    private static Dictionary<string, Dictionary<string, WipePreset>> LoadExternalPresetsFromCache() {
+    private static async Task<WipePresetCollection> LoadExternalPresetsFromCache() {
         if (!File.Exists(ExternalPresetsCacheFile)) {
-            return new Dictionary<string, Dictionary<string, WipePreset>>();
+            return new WipePresetCollection();
         }
-        var json = File.ReadAllText(ExternalPresetsCacheFile);
-        return JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, WipePreset>>>(json, serConfig);
+        var json = await File.ReadAllTextAsync(ExternalPresetsCacheFile);
+        return JsonConvert.DeserializeObject<WipePresetCollection>(json, serConfig);
     }
     
-    private static Dictionary<string, WipePreset> FetchExternalPreset(Uri url) {
-        var json = cl.GetStringAsync(url).Result;
-        return JsonConvert.DeserializeObject<Dictionary<string, WipePreset>>(json, serConfig);
+    private static async Task<WipePresetGroup> FetchExternalPreset(Uri url) {
+        var json = await cl.GetStringAsync(url);
+        return JsonConvert.DeserializeObject<WipePresetGroup>(json, serConfig);
     }
 
-    private Dictionary<string, Dictionary<string, WipePreset>> FetchExternalPresets() {
+    private async Task<ActionResult<WipePresetCollection>> FetchExternalPresets(IWebSession session = null) {
         _log.Debug("Fetching external presets...");
-        var presets = new Dictionary<string, Dictionary<string, WipePreset>>();
-        foreach (var (name, url) in Settings.ServerWipe.ExternalPresets) {
-            _log.Debug($"Fetching external preset {name} from {url}");
-            presets[name] = FetchExternalPreset(new Uri(url));
+        var presets = new WipePresetCollection();
+        foreach (var (source, url) in Settings.ServerWipe.ExternalPresets) {
+            _log.Debug($"Fetching external preset {source} from {url}");
+            var fetched = await FetchExternalPreset(new Uri(url));
+
+            if (session == null) {
+                presets[source] = fetched;
+                break;
+            }
+
+            _log.Debug($"Validating permissions for presets fetched from external source: {source}");
+            foreach (var (name, preset) in fetched) {
+                if (!string.IsNullOrWhiteSpace(preset.SeedSettingNode)
+                    && !session.HasPermission($"Settings.{preset.SeedSettingNode}")) {
+                    _log.Warning($"User does not have permission for seed setting node {preset.SeedSettingNode} in Preset: {name}, Source: {source}");
+                    return ActionResult<WipePresetCollection>
+                        .FailureReason($"This user does not have permissions for the seed setting node, {preset.SeedSettingNode}, from Preset: {name}, Source: {source}");
+                }
+            }
         }
-        return presets;
+        return ActionResult<WipePresetCollection>.Success(presets);
     }
 
     private void ConsolidatePresets() {
@@ -338,10 +375,11 @@ public class PluginMain : AMPPlugin {
         Presets["Local"] = LocalPresets;
     }
     
-    public Dictionary<string, Dictionary<string, WipePreset>> LoadExternalPresets() {
+    public async Task<WipePresetCollection> LoadExternalPresets(IWebSession session = null) {
         _log.Debug("Loading external presets");
-        ExternalPresets = FetchExternalPresets();
-        SaveExternalPresets();
+        var presetsToProcess = await FetchExternalPresets(session);
+        ExternalPresets = presetsToProcess;
+        await SaveExternalPresets();
         ConsolidatePresets();
         return ExternalPresets;
     }
@@ -357,28 +395,28 @@ public class PluginMain : AMPPlugin {
     }
 
     [ScheduleableTask("Wipe a single file/directory")]
-    public ActionResult ScheduleWipeFile(
+    public async Task<ActionResult> ScheduleWipeFile(
         [ParameterDescription("The path to the file/directory to wipe")] string path,
         [ParameterDescription("Dry run")] NoYes dryRun = NoYes.No
-        )  => WipeFiles([path], dryRun == NoYes.Yes);
+        )  => await WipeFiles([path], dryRun == NoYes.Yes);
     
     [ScheduleableTask("Wipe multiple files/directories")]
-    public ActionResult ScheduleWipeFiles(
+    public async Task<ActionResult> ScheduleWipeFiles(
         [ParameterDescription("Semicolon-separated")] string paths,
         [ParameterDescription("Dry run")] NoYes dryRun = NoYes.No
-        ) => WipeFiles(paths.Split(';').ToList(), dryRun == NoYes.Yes);
+        ) => await WipeFiles(paths.Split(';').ToList(), dryRun == NoYes.Yes);
     
     [ScheduleableTask("Wipe the server using the list of files/directories specified in the settings")]
-    public ActionResult ScheduleWipeServer(
+    public async Task<ActionResult> ScheduleWipeServer(
         [ParameterDescription("Reset the server's seed")] NoYes resetSeed = NoYes.No,
         [ParameterDescription("Dry run")] YesNo dryRun = YesNo.Yes
-    ) => WipeServer(resetSeed == NoYes.Yes, dryRun == YesNo.Yes);
+        ) => await WipeServer(resetSeed == NoYes.Yes, dryRun == YesNo.Yes);
     
     [ScheduleableTask("Wipe the server using a wipe preset")]
-    public ActionResult ScheduleWipeByPreset(
+    public async Task<ActionResult> ScheduleWipeByPreset(
         [ParameterDescription("The source of the preset (\"Local\" by default)")] string source,
         [ParameterDescription("The name of the preset to use")] string presetName,
         [ParameterDescription("Reset the server's seed")] NoYes resetSeed = NoYes.No,
         [ParameterDescription("Dry run")] YesNo dryRun = YesNo.Yes
-        ) => WipeByPreset(source, presetName, resetSeed == NoYes.Yes, dryRun == YesNo.Yes);
+        ) => await WipeByPreset(source, presetName, resetSeed == NoYes.Yes, dryRun == YesNo.Yes);
 }

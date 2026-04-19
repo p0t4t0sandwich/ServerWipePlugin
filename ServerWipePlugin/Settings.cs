@@ -37,6 +37,10 @@ public class Settings : SettingStore {
         public string PresetName;
         
         [WebSetting("Seed Setting Node", "The setting to change when setting the seed (enable \"Show development information\" within the instance to view setting nodes)", false)]
+        [InlineAction("ServerWipePlugin", "SetSeedSettingNode", "Confirm")]
+        public string SeedSettingNodeHolder = "";
+        
+        [WebSetting("Actual value for SeedSettingNodeHolder", "SeedSettingNodeHolder acts as an intermediary for SeedSettingNode so user permissions can be properly checked")]
         public string SeedSettingNode = "";
         
         [WebSetting("Seed Setting Value", "The value to set the seed setting to, in cases where you want to hardcode the seed", false)]
